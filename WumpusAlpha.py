@@ -3,6 +3,7 @@ import json
 import asyncio
 import inspect
 import math
+import time
 import sys
 import os
 
@@ -22,7 +23,7 @@ init()
 url = "http://api.wolframalpha.com/v2/query?"
 activeMessages = {}
 colors = {'n': Fore.LIGHTWHITE_EX, 's': Fore.LIGHTGREEN_EX, 'f': Fore.LIGHTRED_EX}
-liveTime = datetime.now()
+startTime = time.time()
     
 # env variables
 load_dotenv()
@@ -34,17 +35,17 @@ appID = os.getenv('WOLFRAM_ID')
 # failure print
 def fprint(message):
     caller = inspect.stack()[1][3]
-    print(colors['f'] + f"{datetime.now().strftime('%H:%M:%S')} | {caller} | {message}" + colors['n'])
+    print(colors['f'] + f"{time.strftime('%H:%M:%S')} | {caller} | {message}" + colors['n'])
 
 # success print
 def sprint(message):
     caller = inspect.stack()[1][3]
-    print(colors['s'] + f"{datetime.now().strftime('%H:%M:%S')} | {caller} | {message}" + colors['n'])
+    print(colors['s'] + f"{time.strftime('%H:%M:%S')} | {caller} | {message}" + colors['n'])
 
 # neutral print
 def nprint(message):
     caller = inspect.stack()[1][3]
-    print(colors['n'] + f"{datetime.now().strftime('%H:%M:%S')} | {caller} | {message}")
+    print(colors['n'] + f"{time.strftime('%H:%M:%S')} | {caller} | {message}")
 
 # ASYNC DEFS
 # waits a certain amount of time, then removes the messageID from active messages
@@ -71,38 +72,34 @@ bot = commands.AutoShardedBot(command_prefix='=', intents=intents)
 # triggered when bot is ready
 @bot.event
 async def on_ready():
-    liveTime = datetime.now()
-    sprint(f'{bot.user.name} ready at {liveTime.strftime("%Y-%m-%d %H:%M:%S")}')
+    sprint(f'{bot.user.name} ready at {time.strftime("%m/%d/%Y %H:%M:%S")}')
 
 # triggered when shard is ready
 @bot.event
 async def on_shard_ready(shard):
-    sprint(f'shard {shard} ready at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    sprint(f'shard {shard} ready at {time.strftime("%m/%d/%Y %H:%M:%S")}')
 
 # triggered when bot connects
 @bot.event
 async def on_connect():
-    liveTime = datetime.now()
-    sprint(f'{bot.user.name} connected to Discord at {liveTime.strftime("%Y-%m-%d %H:%M:%S")}')
+    sprint(f'{bot.user.name} connected at {time.strftime("%m/%d/%Y %H:%M:%S")}')
 
 # triggered when bot resumes
 @bot.event
 async def on_resumed():
-    liveTime = datetime.now()
-    sprint(f'{bot.user.name} resumed at {liveTime.strftime("%Y-%m-%d %H:%M:%S")}')
+    sprint(f'{bot.user.name} resumed at {time.strftime("%m/%d/%Y %H:%M:%S")}')
 
 # triggered when bot is disconnected
 @bot.event
 async def on_disconnect():
-    fprint(f'{bot.user.name} disconnected from Discord at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    fprint(f'{bot.user.name} disconnected at {time.strftime("%m/%d/%Y %H:%M:%S")}')
 
 # triggered when an exception is raised
 @bot.event
 async def on_error(event, *args, **kwargs):
     with open('err.log', 'a') as f:
-        fprint("!!! WARNING !!!\nexception raised! check err.log for more details")
-        f.write(f'\nException raised at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-        f.write(f'\n{sys.exc_info()}')
+        fprint("!!! WARNING !!! exception raised, check err.log for more details")
+        f.write(f'\n-------------------------\nException raised at {time.strftime("%m/%d/%Y %H:%M:%S")}\n{sys.exc_info()}')
 
 # triggered when an error occurs in a command
 @bot.event
@@ -280,14 +277,17 @@ async def stats(ctx):
     with open('queryCount.log', 'r') as rf:
         totalQueries = rf.read()
     totalServers = len(bot.guilds)
-    currentTime = datetime.now()
-    uptime = (datetime.min + (currentTime - liveTime)).time()
-    uptimeDay = int(currentTime.strftime('%d')) - int(liveTime.strftime('%d'))
+
+    # CALCULATE UPTIME
+    currentTime = time.time()
+    diff = currentTime - startTime
+    uptime = time.gmtime(diff)
+
     statsEmbed = embeds.Embed(title="Wumpus|Alpha stats", colour=statsColor)
     statsEmbed.timestamp = datetime.utcnow()
     statsEmbed.add_field(name="Servers", value=f"```{totalServers}```")
     statsEmbed.add_field(name="Answers", value=f"```{totalQueries}```")
-    statsEmbed.add_field(name="Uptime", value=f"```{uptimeDay} d {uptime.strftime('%H h %M m %S s')}```")
+    statsEmbed.add_field(name="Uptime", value=f"```{(uptime.tm_yday - 1) * (uptime.tm_year - 1969)}D {uptime.tm_hour}H {uptime.tm_min}M {uptime.tm_sec}S```")
     await ctx.send(embed=statsEmbed)
 
 # =invite - DMs the user an invite link for the bot
